@@ -1,0 +1,75 @@
+server:
+  port: 18000
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+    context-path: /
+  # 设置jackson的默认时区
+  jackson:
+    time-zone: GMT+8
+  # 数据库配置
+
+spring:
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    # 该项可以不配置, druid可以通过url自动识别, 如果有多个不同类型的数据源的话此项要省略
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+    druid:
+      # 主数据源
+      master:
+#        url: jdbc:dm://26.47.137.132:15236/EAS?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+#        username: EAS
+#        password: EsDb!@0120#$
+        url: jdbc:dm://localhost:5236/EAS?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+        username: SYSDBA
+        password: Qwer!234
+#        url: jdbc:mysql://mysql.sqlpub.com:3306/db_yy_mysql?characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+#        username: user_info
+#        password: PvAgpfZt7MJco4gy
+      # 辅数据源
+      slave:
+        # 辅数据源开关/默认关闭
+        enabled: true
+        url: jdbc:mysql://localhost:3306/meco-server2?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+        username: root
+        password: 123456
+      initialSize: 5
+      minIdle: 10
+      maxActive: 20
+      maxWait: 60000
+      timeBetweenEvictionRunsMillis: 60000
+      minEvictableIdleTimeMillis: 300000
+      maxEvictableIdleTimeMillis: 900000
+      validationQuery: SELECT 1 FROM DUAL
+      testWhileIdle: true
+      testOnBorrow: false
+      testOnReturn: false
+      webStatFilter:
+        enabled: true
+      statViewServlet:
+        enabled: true
+        # 设置白名单，不填则允许所有访问
+        allow:
+        url-pattern: /druid/*
+        # 控制台管理用户名和密码
+        login-username: admin
+        login-password: 123456
+      filter:
+        stat:
+          enabled: true
+          # 慢SQL记录
+          log-slow-sql: true
+          slow-sql-millis: 1000
+          merge-sql: true
+        wall:
+          config:
+            multi-statement-allow: true
+
+# mybatis配置信息
+mybatis:
+  # xml文件路径
+  mapper-locations: classpath:mapper/**/*.xml
+  config-location: classpath:mybatis-config.xml
+  type-aliases-package: org.example.db.common.**.bean
