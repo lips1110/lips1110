@@ -37,8 +37,8 @@ export default {
   executeSql(para) {
     return http.post('/execute',para ).then((r) => r.data);
   },
-  executeAll(sql) {
-    return http.post('/execute-all', { sql }).then((r) => r.data);
+  executeAll(para) {
+    return http.post('/execute-all', para).then((r) => r.data);
   },
   exportAllApi(para) {
     return http.post(

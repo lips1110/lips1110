@@ -38,8 +38,8 @@
           :style="resultPanelStyle"
       >
         <div class="result-header">
-          <i :class="showResult ? 'el-icon-arrow-down' : 'el-icon-arrow-up'"/>
-          <span @click="toggleResult">执行结果</span>
+          <i  @click="toggleResult" :class="showResult ? 'el-icon-arrow-down' : 'el-icon-arrow-up'"/>
+          <span style="height: 20px;width: 50px" @click="toggleResult">执行结果</span>
           <el-tag v-if="lastResult" size="mini" type="info">{{ resultSummary }}</el-tag>
           <span v-if="showResult" class="resize-hint">拖动上方分隔条调整高度</span>
           <div v-if="showResult" class="resize-hint">
@@ -312,7 +312,6 @@ export default {
         return match ? match[1].toUpperCase() : '';
       }
 
-      try {
         let par = {
           sql: sql,
           pageNum: this.pageNum,
@@ -320,9 +319,11 @@ export default {
         }
         if (isAll) {
           const data = await api.executeAll(par);
-          this.batchResults = data.results;
-          this.lastResult = {type: 'batch', count: data.results.length};
-          this.$message.success(`已执行 ${data.results.length} 条语句`);
+          console.log(data.result)
+          this.batchResults = data.result;
+          console.log(this.batchResults )
+          this.lastResult = {type: 'batch', count: data.result.length};
+          this.$message.success(`已执行 ${data.result.length} 条语句`);
         } else {
           let data;
           const trimmed = sql.trim();
@@ -377,12 +378,7 @@ export default {
         }
         this.showResult = true;
         this.$nextTick(() => this.clampResultHeight());
-      } catch (e) {
-        this.error = e.message;
-        this.$message.error(this.error);
-      } finally {
-        this.executing = false;
-      }
+        this.executing = false
     }
   }
 };

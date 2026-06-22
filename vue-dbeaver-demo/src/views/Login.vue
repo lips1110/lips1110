@@ -83,7 +83,7 @@ export default {
           )
 
           this.$message.success('登录成功')
-          this.$router.push('/script')
+          this.$router.push('/test')
 
         } else {
           this.loading = false

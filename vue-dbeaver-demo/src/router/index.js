@@ -4,6 +4,7 @@ import ScriptEditor from '../views/ScriptEditor.vue';
 import TableData from '../views/TableData.vue';
 import TableColumns from '../views/TableColumns.vue';
 import Login from '../views/Login.vue';
+import test from "@/views/test.vue";
 
 Vue.use(VueRouter);
 
@@ -15,9 +16,13 @@ const routes = [
   },
   {
     path: '/',
-    redirect: '/script'
+    redirect: '/test'
   },
-
+  {
+    path: '/test',
+    name: 'test',
+    component: test
+  },
   {
     path: '/script',
     name: 'Script',
