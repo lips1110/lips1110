@@ -22,12 +22,12 @@ spring:
 #        url: jdbc:dm://26.47.137.132:15236/EAS?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
 #        username: EAS
 #        password: EsDb!@0120#$
-        url: jdbc:dm://localhost:5236/EAS?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
-        username: SYSDBA
-        password: Qwer!234
-#        url: jdbc:mysql://mysql.sqlpub.com:3306/db_yy_mysql?characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-#        username: user_info
-#        password: PvAgpfZt7MJco4gy
+#        url: jdbc:dm://localhost:5236/EAS?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+#        username: SYSDBA
+#        password: Qwer!234
+        url: jdbc:mysql://mysql.sqlpub.com:3306/db_yy_mysql?characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+        username: user_info
+        password: PvAgpfZt7MJco4gy
       # 辅数据源
       slave:
         # 辅数据源开关/默认关闭
