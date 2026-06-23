@@ -2,14 +2,14 @@
   <div class="db-sidebar">
     <div class="search-box">
       <el-input
-        v-model="filterText"
-        placeholder="搜索数据库对象..."
-        prefix-icon="el-icon-search"
-        size="small"
-        clearable
+          v-model="filterText"
+          placeholder="搜索数据库对象..."
+          prefix-icon="el-icon-search"
+          size="small"
+          clearable
       />
     </div>
-<!--    树形图-->
+    <!--树形图-->
     <div class="tree-container" v-loading="loading">
       <el-tree
           ref="tree"
@@ -26,7 +26,7 @@
       class="tree-node"
       style="cursor: grab;"
   >
-    <i :class="getNodeIcon(data)" />
+    <i :class="getNodeIcon(data)"/>
     <span class="tree-label">{{ node.label }}</span>
   </span>
       </el-tree>
@@ -65,18 +65,15 @@ export default {
         this.treeData = await api.getTree();
         let tables = this.treeData;
         //获取TABLE的列
-
-
         const tableNodes = tables.map((name) => ({
           id: `table-${name}`,
           label: name,
           type: 'table',
           tableName: name,
           children: [
-            { id: `${name}-columns`, label: '列', type: 'folder', tableName: name, metaType: 'columns',children: [] },
+            {id: `${name}-columns`, label: '列', type: 'folder', tableName: name, metaType: 'columns', children: []},
           ]
         }));
-
         this.treeData = [
           {
             id: 'database-root',

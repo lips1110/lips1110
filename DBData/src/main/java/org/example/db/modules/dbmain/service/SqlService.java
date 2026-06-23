@@ -4,8 +4,8 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.example.db.common.config.DataSourceWith;
-import org.example.db.common.enums.DataSourceType;
+import org.example.common.config.DataSourceWith;
+import org.example.common.enums.DataSourceType;
 import org.example.db.modules.dbmain.bean.ExecuteRequest;
 import org.example.db.modules.dbmain.bean.ResultBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +20,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 @Service
 public class SqlService {
@@ -32,9 +31,7 @@ public class SqlService {
         sql = sql.replaceAll("(?s)/\\*.*?\\*/", "");
         sql = sql.replaceAll("(?m)^\\s*--.*$", "");
         sql = sql.trim();
-        
         Matcher m = Pattern.compile("^(\\w+)", Pattern.CASE_INSENSITIVE).matcher(sql);
-        
         return m.find() ? m.group(1).toUpperCase() : "";
     }
     
@@ -42,22 +39,20 @@ public class SqlService {
     public ResultBean queryMaster(ExecuteRequest executeRequest) {
         String sql = executeRequest.getSql().replaceAll(";", "");
         String firstKeyword = getFirstKeyword(sql);
-        
         ResultBean resultBean = new ResultBean();
         List<Map<String, Object>> maps = new ArrayList<>();
         Integer pageNum = executeRequest.getPageNum();
         Integer pageSize = executeRequest.getPageSize();
         Long total = 0L;
         int offset = (pageNum - 1) * pageSize;
-        String pageSql = sql + " LIMIT " + offset + "," + pageSize;
+        String pageSql;
         Map<String, Object> map = new HashMap<>();
-        
         try {
             if ("SELECT".equals(firstKeyword)) {
                 // 统计总数
                 String countSql = "select count(*) from (" + sql + ") t";
                 total = jdbcTemplate.queryForObject(countSql, Long.class);
-                pageSql = "select * from (" + sql + ") t limit ?, ?";
+                pageSql = "" + sql + "  LIMIT ?, ?";
                 maps = jdbcTemplate.queryForList(pageSql, offset, pageSize);
             } else {
                 maps = jdbcTemplate.queryForList(sql);
@@ -69,13 +64,6 @@ public class SqlService {
             resultBean.setMessage(e.getMessage());
             resultBean.setRows(maps);
             return resultBean;
-        }
-        for (Map<String, Object> row : maps) {
-            row.forEach((key, value) -> {
-                if (value instanceof Timestamp) {
-                    row.put(key, ((Timestamp) value).toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-                }
-            });
         }
         resultBean.setTotal(total);
         resultBean.setCode(200);
@@ -219,5 +207,31 @@ public class SqlService {
                 "ORDER BY c.COLUMN_ID;";
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
         return rows;
+    }
+    
+    @DataSourceWith(DataSourceType.MASTER)
+    public ResultBean updateMaster(ExecuteRequest executeRequest) {
+        ResultBean resultBean = new ResultBean();
+        List<Map<String, Object>> maps = new ArrayList<>();
+        Map<String, Object> map = new HashMap<>();
+        try {
+            int update = jdbcTemplate.update(executeRequest.getSql());
+            resultBean.setCode(200);
+            resultBean.setMessage("已更新行数" + update);
+            map.put("result", "已更新行数" + update);
+            maps.add(map);
+            resultBean.setRows(maps);
+            resultBean.setTotal((long) update);
+            return resultBean;
+        } catch (Exception e) {
+            resultBean.setCode(500);
+            map.put("error", e.getMessage());
+            maps.add(map);
+            resultBean.setMessage(e.getMessage());
+            resultBean.setRows(maps);
+            return resultBean;
+        }
+        
+        
     }
 }

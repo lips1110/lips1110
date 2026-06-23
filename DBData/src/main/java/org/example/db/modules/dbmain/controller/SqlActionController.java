@@ -1,5 +1,7 @@
 package org.example.db.modules.dbmain.controller;
 
+import org.example.db.modules.dbmain.bean.BatchResult;
+import org.example.db.modules.dbmain.bean.BatchRows;
 import org.example.db.modules.dbmain.bean.ExecuteRequest;
 import org.example.db.modules.dbmain.bean.ResultBean;
 import org.example.db.modules.dbmain.service.SqlService;
@@ -15,14 +17,11 @@ import java.util.Map;
 @RestController
 @RequestMapping("/db")
 public class SqlActionController {
-    
-    
     @Autowired
     private SqlService sqlService;
     
     @GetMapping("/health")
     public void getHealth() {
-    
     }
     
     @GetMapping("/tables/{tableName}/columns")
@@ -33,7 +32,6 @@ public class SqlActionController {
     @PostMapping("/tables/data")
     public void getTableData(@RequestBody ExecuteRequest executeRequest) {
         sqlService.getTableData(executeRequest);
-        
     }
     
     @GetMapping("/tables")
@@ -43,33 +41,43 @@ public class SqlActionController {
     
     @PostMapping("/execute")
     public ResultBean execute(@RequestBody ExecuteRequest executeRequest) {
-        return sqlService.queryMaster(executeRequest);
+        if (executeRequest.getSql().toUpperCase().contains("UPDATE")) {
+            return sqlService.updateMaster(executeRequest);
+        } else {
+            return sqlService.queryMaster(executeRequest);
+        }
+        
     }
     
     @RequestMapping("/execute-all")
-    public HashMap<String, Object> executeAll(@RequestBody ExecuteRequest executeRequest) {
-        ResultBean resultBean = sqlService.queryMaster(executeRequest);
-        List<Map<String, Object>> rows = resultBean.getRows();
-        for (int i = 0; i < rows.size(); i++) {
-            Map<String, Object> stringObjectMap = rows.get(i);
-            stringObjectMap.put("type", "result");
-            rows.set(i, stringObjectMap);
+    public List<BatchResult> executeAll(@RequestBody ExecuteRequest executeRequest) {
+        List<BatchResult> batchResults = new ArrayList<>();
+        String[] split = executeRequest.getSql().split(";");
+        for (String s : split) {
+            executeRequest.setSql(s);
+            ResultBean resultBean = sqlService.queryMaster(executeRequest);
+            BatchResult batchResult = new BatchResult();
+            BatchRows batchRows = new BatchRows();
+            batchRows.setRows(resultBean.getRows());
+            batchRows.setType("result");
+            batchRows.setRowCount(resultBean.getTotal());
+            List<String> cloumns = new ArrayList<>();
+            Map<String, Object> map = resultBean.getRows().get(0);
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                cloumns.add(entry.getKey());
+            }
+            batchRows.setColumns(cloumns);
+            batchResult.setResult(batchRows);
+            batchResult.setSql(executeRequest.getSql());
+            batchResults.add(batchResult);
         }
-        List<HashMap<String, Object>> result = new ArrayList<>();
-        HashMap<String, Object> hashMap = new HashMap<>();
-        HashMap<String, Object> hashMap2 = new HashMap<>();
-        hashMap2.put("columns", "");
-        hashMap2.put("rowCount", rows);
-        hashMap2.put("result", rows);
-        hashMap.put("type", executeRequest.getSql());
-        hashMap.put("result", hashMap2);
-        result.add(hashMap);
-        
-        return hashMap;
+        return batchResults;
     }
     
     @PostMapping("/exportAllApi")
     public void exportAllApi(@RequestBody ExecuteRequest request, HttpServletResponse response) throws Exception {
+        String replace = request.getSql().replace(";", "");
+        request.setSql(replace);
         sqlService.export(request, response);
     }
     

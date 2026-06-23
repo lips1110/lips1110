@@ -77,14 +77,9 @@ export default {
         this.loading = true
         const res = await api.login(this.loginForm);
         if (res.code === 200) {
-          localStorage.setItem(
-              'token',
-              res.data
-          )
-
+          localStorage.setItem( 'token',res.data )
           this.$message.success('登录成功')
-          this.$router.push('/test')
-
+          await this.$router.push('/DB')
         } else {
           this.loading = false
           this.$message.error(res.message || '登录失败')

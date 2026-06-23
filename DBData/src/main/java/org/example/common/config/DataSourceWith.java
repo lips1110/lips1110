@@ -1,7 +1,7 @@
-package org.example.db.common.config;
+package org.example.common.config;
 
 
-import org.example.db.common.enums.DataSourceType;
+import org.example.common.enums.DataSourceType;
 
 import java.lang.annotation.*;
 

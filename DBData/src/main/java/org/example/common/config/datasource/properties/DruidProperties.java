@@ -1,4 +1,4 @@
-package org.example.db.common.config.datasource.properties;
+package org.example.common.config.datasource.properties;
 
 import com.alibaba.druid.pool.DruidDataSource;
 import org.slf4j.Logger;

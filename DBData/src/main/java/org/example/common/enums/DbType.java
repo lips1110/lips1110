@@ -1,4 +1,4 @@
-package org.example.db.common.enums;
+package org.example.common.enums;
 
 /**
  * @author liuxingyu01

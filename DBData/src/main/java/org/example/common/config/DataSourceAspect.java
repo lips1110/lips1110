@@ -1,10 +1,10 @@
-package org.example.db.common.config;
+package org.example.common.config;
 
 import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.example.db.common.config.datasource.RoutingDataSourceContext;
+import org.example.common.config.datasource.RoutingDataSourceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

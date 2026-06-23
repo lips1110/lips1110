@@ -1,14 +1,13 @@
-package org.example.db.common.config.datasource;
+package org.example.common.config.datasource;
 
 import com.alibaba.druid.pool.DruidDataSource;
 import com.alibaba.druid.spring.boot.autoconfigure.DruidDataSourceBuilder;
-import org.example.db.common.config.datasource.properties.DruidProperties;
-import org.example.db.common.enums.DataSourceType;
-import org.example.db.common.utils.spring.SpringUtil;
+import org.example.common.config.datasource.properties.DruidProperties;
+import org.example.common.enums.DataSourceType;
+import org.example.common.utils.spring.SpringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.quartz.QuartzDataSource;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

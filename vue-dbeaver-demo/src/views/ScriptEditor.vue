@@ -8,12 +8,10 @@
         <i class="el-icon-document"/>
         当前sql查询页
       </div>
-
     </div>
 
     <div class="split-body">
       <div class="editor-area">
-
         <!-- 引入组件SqlEditor -->
         <SqlEditor
             ref="sqlEditor"
@@ -22,7 +20,6 @@
             @execute-all="executeAll"
         />
       </div>
-
       <div
           v-show="showResult"
           class="resize-bar"
@@ -31,14 +28,13 @@
       >
         <span class="resize-grip"/>
       </div>
-
       <div
           class="result-panel"
           :class="{ collapsed: !showResult }"
           :style="resultPanelStyle"
       >
         <div class="result-header">
-          <i  @click="toggleResult" :class="showResult ? 'el-icon-arrow-down' : 'el-icon-arrow-up'"/>
+          <i @click="toggleResult" :class="showResult ? 'el-icon-arrow-down' : 'el-icon-arrow-up'"/>
           <span style="height: 20px;width: 50px" @click="toggleResult">执行结果</span>
           <el-tag v-if="lastResult" size="mini" type="info">{{ resultSummary }}</el-tag>
           <span v-if="showResult" class="resize-hint">拖动上方分隔条调整高度</span>
@@ -46,17 +42,19 @@
             <span @click="exportCurrent">导出当前结果</span>&nbsp;&nbsp;
             <span @click="exportAll">导出全部结果</span>
           </div>
-
         </div>
         <div v-show="showResult" class="result-body" v-loading="executing">
+
           <div v-if="error" class="result-error">
             <i class="el-icon-warning"/> {{ error }}
           </div>
+
           <div v-else-if="batchResults.length">
             <div v-for="(item, idx) in batchResults" :key="idx" class="batch-item">
               <div class="batch-sql">{{ item.sql }}</div>
-              <ResultTable v-if="item.result.type === 'result'" :data="item.result"/>
-              <div v-else class="execute-msg">影响行数: {{ item.result.changes }}</div>
+              <ResultTable :page-size="pageSize" @page-change="handlePageChange" v-if="item.result.type === 'result'"
+                           :data="item.result"/>
+              <!--              <div v-else class="execute-msg">影响行数: {{ item.result.changes }}</div>-->
             </div>
           </div>
 
@@ -65,14 +63,10 @@
                        :current-page="pageNum"
                        :page-size="pageSize"
                        @page-change="handlePageChange"/>
-
-
           <div v-else="singleResult" class="result-empty">执行 SQL 后结果将显示在这里</div>
         </div>
       </div>
     </div>
-
-
   </div>
 </template>
 
@@ -81,7 +75,6 @@ import SqlEditor from '../components/SqlEditor.vue';
 import ResultTable from '../components/ResultTable.vue';
 import api from '../api';
 
-const DEFAULT_SQL = `-- 注释`;
 const MIN_EDITOR_HEIGHT = 120;
 const MIN_RESULT_HEIGHT = 120;
 const RESIZE_BAR_HEIGHT = 6;
@@ -111,12 +104,14 @@ async function extracted(par) {
 export default {
   name: 'ScriptEditor',
   components: {SqlEditor, ResultTable},
+  props: {
+    sqlInput: {},
+  },
   data() {
     return {
       activeTab: 1,
       resultHeight: 240,
       isResizing: false,
-      sql: DEFAULT_SQL,
       executing: false,
       showResult: true,
       error: null,
@@ -153,12 +148,24 @@ export default {
     }
   },
   watch: {
+    sqlInput: {
+      immediate: true,
+      handler(val) {
+        console.log(val)
+      }
+    },
     '$route.query.sql': {
       immediate: true,
       handler(sql) {
         if (sql) {
           this.sql = sql;
         }
+      }
+    },
+    sql: {
+      immediate: true,
+      handler(val) {
+        this.$refs.sqlEditor?.setValue(val)
       }
     }
   },
@@ -191,107 +198,54 @@ export default {
       // 更新分页参数
       this.pageNum = param.pageNum;
       this.pageSize = param.pageSize;
-
-      await this.executeCurrent();
       console.log(this.pageNum, this.pageSize)
+      await this.executeCurrent(true);
+      await this.executeAll(true);
     },
-
-
-    initResultHeight() {
-      const container = this.$refs.container;
-      if (!container) return;
-      this.resultHeight = Math.round(container.clientHeight * 0.35);
-      this.clampResultHeight();
-    },
-    getMaxResultHeight() {
-      const container = this.$refs.container;
-      if (!container) return 600;
-      const tabBarHeight = 28;
-      const resultHeaderHeight = 32;
-      const available =
-          container.clientHeight -
-          tabBarHeight -
-          RESIZE_BAR_HEIGHT -
-          resultHeaderHeight -
-          MIN_EDITOR_HEIGHT;
-
-      return Math.max(MIN_RESULT_HEIGHT, available);
-    },
-    clampResultHeight() {
-      const max = this.getMaxResultHeight();
-      this.resultHeight = Math.min(max, Math.max(MIN_RESULT_HEIGHT, this.resultHeight));
-    },
-    toggleResult() {
-      this.showResult = !this.showResult;
-      if (this.showResult) {
-        this.$nextTick(() => this.clampResultHeight());
+    async executeCurrent(flag) {
+      if (!flag) {
+        this.pageNum = 1
       }
-    },
-    startResize(e) {
-      this.isResizing = true;
-      const startY = e.clientY;
-      const startHeight = this.resultHeight;
-
-      document.body.style.cursor = 'row-resize';
-      document.body.style.userSelect = 'none';
-
-      this._moveHandler = (event) => {
-        const delta = startY - event.clientY;
-        this.resultHeight = startHeight + delta;
-        this.clampResultHeight();
-      };
-
-      this._upHandler = () => {
-        this.stopResizeListeners();
-        this.$nextTick(() => {
-          if (this.$refs.sqlEditor) {
-            this.$refs.sqlEditor.refresh();
-          }
-        });
-      };
-
-      document.addEventListener('mousemove', this._moveHandler);
-      document.addEventListener('mouseup', this._upHandler);
-    },
-    stopResizeListeners() {
-      this.isResizing = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-
-      if (this._moveHandler) {
-        document.removeEventListener('mousemove', this._moveHandler);
-        this._moveHandler = null;
+      if (this.pageNum == null) {
+        this.pageNum = 100
       }
-      if (this._upHandler) {
-        document.removeEventListener('mouseup', this._upHandler);
-        this._upHandler = null;
-      }
-    },
-    async executeCurrent(resetPage = true) {
-      if (resetPage) {
-        this.pageNum = 1;
-      }
-
       const sql = this.$refs.sqlEditor.getCurrentStatement();
-
       if (!sql) {
         this.$message.warning('没有可执行的 SQL');
         return;
       }
+      if (sql.toUpperCase().includes('UPDATE')){
+        this.$confirm(
+            `确定执行UPDATE操作吗？点击确认后无法撤销！请仔细检查`,
+            '提示',
+            {
+              confirmButtonText: '保存',
+              cancelButtonText: '取消',
+              type: 'warning'
+            }
+        ).then(async () => {
+          await this.runSql(sql, false);
+        })
+      }else{
+        await this.runSql(sql, false);
+      }
 
-      await this.runSql(sql, false);
     },
-
-
-    async executeAll() {
+    async executeAll(flag) {
+      const sql = this.$refs.sqlEditor.getCurrentStatement();
+      if (sql.toUpperCase().includes('UPDATE')){
+        this.$message.warning('查询全部禁止UPDATE操作');
+        return;
+      }
+      if (!flag) {
+        this.pageNum = 1
+      }
       if (!this.sql.trim()) {
         this.$message.warning('编辑器为空');
         return;
       }
       await this.runSql(this.sql, true);
     },
-
-
     async runSql(sql, isAll) {
       this.executing = true;
       this.error = null;
@@ -312,74 +266,139 @@ export default {
         return match ? match[1].toUpperCase() : '';
       }
 
-        let par = {
-          sql: sql,
-          pageNum: this.pageNum,
-          pageSize: this.pageSize
-        }
-        if (isAll) {
-          const data = await api.executeAll(par);
-          console.log(data.result)
-          this.batchResults = data.result;
-          console.log(this.batchResults )
-          this.lastResult = {type: 'batch', count: data.result.length};
-          this.$message.success(`已执行 ${data.result.length} 条语句`);
-        } else {
-          let data;
-          const trimmed = sql.trim();
-          if (!trimmed) {
-            throw new Error('SQL 语句不能为空');
-          }
-          const upper = trimmed.toUpperCase();
-          const firstKeyword = getFirstKeyword(upper);
-          const isSelect =
-              firstKeyword.startsWith('SHOW') ||
-              firstKeyword.startsWith('SELECT') ||
-              firstKeyword.startsWith('PRAGMA') ||
-              firstKeyword.startsWith('WITH');
-          console.log(firstKeyword)
-          if (firstKeyword == '') {
-            this.$message.error(`查询不能为空`);
-            return;
-          }
-          let code = 200;
-          let total = 0;
-          let msg = '';
-          if (isSelect) {
-            const stmt = await api.executeSql(par);
-            const rows = stmt.rows;
-            const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
-            data = {type: 'result', columns, rows, rowCount: stmt.total};
-            code = stmt.code;
-            total = stmt.total;
-            console.log(total)
-            msg = stmt.message;
-          } else {
-            const result = await api.executeSql(par);
-            data = {
-              type: 'execute',
-              changes: result.changes,
-              lastInsertRowid: result.lastInsertRowid
-            };
-          }
-          this.singleResult = data;
-          this.lastResult = data;
-          if (code === 200) {
-            if (data.type === 'result') {
-              this.exportSql = this.sql
-              this.$message.success(`查询成功,返回 ${total} 行`);
-            } else if (data.type === 'execute') {
-              this.$message.success(`影响 ${data.changes} 行`);
-            }
-          } else {
-            this.$message.info('查询出错:' + msg);
-          }
+      let par = {
+        sql: sql,
+        pageNum: this.pageNum,
+        pageSize: this.pageSize
+      }
+      if (isAll) {
+        const data = await api.executeAll(par);
+        this.batchResults = data;
+        console.log(data)
+        this.lastResult = {type: 'batch', count: data.length};
+        this.$message.success(`已执行 ${data.length} 条语句`);
+      } else {
 
+        let data;
+        const trimmed = sql.trim();
+        if (!trimmed) {
+          throw new Error('SQL 语句不能为空');
         }
-        this.showResult = true;
+        const upper = trimmed.toUpperCase();
+        const firstKeyword = getFirstKeyword(upper);
+        const isSelect =
+            firstKeyword.startsWith('SHOW') ||
+            firstKeyword.startsWith('SELECT') ||
+            firstKeyword.startsWith('PRAGMA') ||
+            firstKeyword.startsWith('WITH');
+        if (firstKeyword == '') {
+          this.$message.error(`查询不能为空`);
+          return;
+        }
+        let code = 200;
+        let total = 0;
+        let msg = '';
+        if (isSelect) {
+          const stmt = await api.executeSql(par);
+          const rows = stmt.rows;
+          const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+          data = {type: 'result', columns, rows, rowCount: stmt.total};
+          code = stmt.code;
+          total = stmt.total;
+          msg = stmt.message;
+        } else {
+          const stmt = await api.executeSql(par);
+          const rows = stmt.rows;
+          const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+          data = {type: 'result', columns, rows, rowCount: stmt.total};
+          code = stmt.code;
+          total = stmt.total;
+          msg = stmt.message;
+        }
+        this.singleResult = data;
+        this.lastResult = data;
+        if (code === 200) {
+          let item = localStorage.getItem('sqlContent');
+          localStorage.setItem('sqlContent', this.sql + " \n" + item);
+          if (data.type === 'result') {
+            this.exportSql = this.sql
+            this.$message.success(`查询成功,返回 ${total} 行`);
+          } else if (data.type === 'execute') {
+            this.$message.success(`影响 ${data.changes} 行`);
+          }
+        } else {
+          this.$message.info('查询出错:' + msg);
+        }
+      }
+      this.showResult = true;
+      this.$nextTick(() => this.clampResultHeight());
+      this.executing = false
+    },
+    initResultHeight() {
+      const container = this.$refs.container;
+      if (!container) return;
+      this.resultHeight = Math.round(container.clientHeight * 0.35);
+      this.clampResultHeight();
+    },
+    getMaxResultHeight() {
+      const container = this.$refs.container;
+      if (!container) return 600;
+      const tabBarHeight = 28;
+      const resultHeaderHeight = 32;
+      const available =
+          container.clientHeight -
+          tabBarHeight -
+          RESIZE_BAR_HEIGHT -
+          resultHeaderHeight -
+          MIN_EDITOR_HEIGHT;
+      return Math.max(MIN_RESULT_HEIGHT, available);
+    },
+    clampResultHeight() {
+      const max = this.getMaxResultHeight();
+      this.resultHeight = Math.min(max, Math.max(MIN_RESULT_HEIGHT, this.resultHeight));
+    },
+    toggleResult() {
+      this.showResult = !this.showResult;
+      if (this.showResult) {
         this.$nextTick(() => this.clampResultHeight());
-        this.executing = false
-    }
+      }
+    },
+    startResize(e) {
+      this.isResizing = true;
+      const startY = e.clientY;
+      const startHeight = this.resultHeight;
+      document.body.style.cursor = 'row-resize';
+      document.body.style.userSelect = 'none';
+      this._moveHandler = (event) => {
+        const delta = startY - event.clientY;
+        this.resultHeight = startHeight + delta;
+        this.clampResultHeight();
+      };
+
+      this._upHandler = () => {
+        this.stopResizeListeners();
+        this.$nextTick(() => {
+          if (this.$refs.sqlEditor) {
+            this.$refs.sqlEditor.refresh();
+          }
+        });
+      };
+      document.addEventListener('mousemove', this._moveHandler);
+      document.addEventListener('mouseup', this._upHandler);
+    },
+    stopResizeListeners() {
+      this.isResizing = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      if (this._moveHandler) {
+        document.removeEventListener('mousemove', this._moveHandler);
+        this._moveHandler = null;
+      }
+      if (this._upHandler) {
+        document.removeEventListener('mouseup', this._upHandler);
+        this._upHandler = null;
+      }
+    },
   }
 };
 </script>

@@ -1,10 +1,9 @@
-package org.example.db.common.config;
+package org.example.common.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.ArrayList;
@@ -28,9 +27,7 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
     
         List<String> excludePathList = new ArrayList<>();
     
-        excludePathList.add("/login/**");
-        excludePathList.add("/doLogin");
-        excludePathList.add("/doRegister");
+        excludePathList.add("/db/login/*");
     
         excludePathList.add("/css/**");
         excludePathList.add("/js/**");
@@ -39,19 +36,9 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
         excludePathList.add("/favicon.ico");
     
         registry.addInterceptor(getAuthenticeInterceptor())
-                .addPathPatterns("/api/**")   // ✔ 只拦 API
+                .addPathPatterns("/db/**")   // ✔ 只拦 API
                 .excludePathPatterns(excludePathList);
     }
-    @Override
-    public void addViewControllers(ViewControllerRegistry registry) {
-        
-        registry.addViewController("/{path:[^\\.]*}")
-                .setViewName("forward:/index.html");
-        
-        registry.addViewController("/**/{path:[^\\.]*}")
-                .setViewName("forward:/index.html");
-    }
-    
     /**
      * 配置静态资源映射
      *

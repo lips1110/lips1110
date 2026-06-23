@@ -57,7 +57,6 @@ export default {
   methods:{
 
     handleCurrentChange(page) {
-
       this.$emit('page-change', {
         pageNum: page,
         pageSize: this.pageSize
@@ -70,8 +69,6 @@ export default {
         pageSize: size
       });
     }
-
-
 
   }
 };

@@ -1,4 +1,4 @@
-package org.example.db.common.utils.spring;
+package org.example.common.utils.spring;
 
 
 import org.springframework.beans.BeansException;

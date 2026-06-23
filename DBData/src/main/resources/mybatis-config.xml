@@ -77,7 +77,7 @@
         </plugin>
 
         <!-- mybatis日志记录插件，必须在分页插件后面 -->
-        <plugin interceptor="org.example.db.common.config.mybatis.MybatisSqlLogInterceptor">
+        <plugin interceptor="org.example.common.config.mybatis.MybatisSqlLogInterceptor">
             <property name="isOpen" value="true"/>
             <property name="isOpenSqlMonitor" value="true"/>
             <property name="maxTime" value="5000"/>

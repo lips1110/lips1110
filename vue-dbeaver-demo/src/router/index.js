@@ -1,10 +1,7 @@
 import Vue from 'vue';
 import VueRouter from 'vue-router';
-import ScriptEditor from '../views/ScriptEditor.vue';
-import TableData from '../views/TableData.vue';
-import TableColumns from '../views/TableColumns.vue';
 import Login from '../views/Login.vue';
-import test from "@/views/test.vue";
+import DB from "@/views/DB.vue";
 
 Vue.use(VueRouter);
 
@@ -16,27 +13,12 @@ const routes = [
   },
   {
     path: '/',
-    redirect: '/test'
+    redirect: '/DB'
   },
   {
-    path: '/test',
-    name: 'test',
-    component: test
-  },
-  {
-    path: '/script',
-    name: 'Script',
-    component: ScriptEditor
-  },
-  {
-    path: '/table/:tableName/data',
-    name: 'TableData',
-    component: TableData
-  },
-  {
-    path: '/table/:tableName/columns',
-    name: 'TableColumns',
-    component: TableColumns
+    path: '/DB',
+    name: 'DB',
+    component: DB
   }
 ];
 
@@ -58,7 +40,6 @@ router.beforeEach((to, from, next) => {
     next('/login');
     return;
   }
-
   next();
 });
 

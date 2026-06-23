@@ -1,4 +1,4 @@
-package org.example.db.common.utils;
+package org.example.common.utils;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;

@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <!-- 登录页 -->
-    <router-view v-if="$route.path === '/login'" />
+    <router-view v-if="$route.path === '/login'"/>
 
     <!-- 主界面 -->
     <div
@@ -56,15 +56,34 @@
       </header>
 
       <div class="main-layout">
+        <!-- 侧边-->
         <aside class="sidebar">
           <DbSidebar
               ref="sidebar"
               @node-click="onNodeClick"
           />
         </aside>
+        <el-dialog
+            :title="isTable ? '列信息' : '历史记录'"
+            :visible.sync="dialogVisible"
+            width="60%"
+            height="60%"
+            @close="handleClose"
+        >
 
+          <!-- 👇 子组件 -->
+          <TableColumns v-if="isTable"
+                        :table-name="currentTableName || ''"
+                        @success="handleSuccess"
+                        @cancel="dialogVisible = false"
+                        @open-sql="setSql"
+          />
+          <HistoryView :history-sql="historySql" v-else></HistoryView>
+        </el-dialog>
+
+        <!--主界面-->
         <main class="workspace">
-          <ScriptEditor></ScriptEditor>
+          <ScriptEditor :sqlInput="activeSql || ''"></ScriptEditor>
         </main>
       </div>
     </div>
@@ -75,75 +94,101 @@
 import DbSidebar from '../components/DbSidebar.vue'
 import api from '../api'
 import ScriptEditor from "@/views/ScriptEditor.vue";
+import TableColumns from "@/views/TableColumns.vue";
+import SqlEditor from "@/components/SqlEditor.vue";
+import HistoryView from "@/views/HistoryView.vue";
 
 export default {
-  name: 'App',
+  name: 'DB',
 
   components: {
+    HistoryView,
+    SqlEditor,
+    TableColumns,
     ScriptEditor,
     DbSidebar
   },
 
+  watch: {
+    dialogVisible(val) {
+    }
+  },
+
   data() {
     return {
-      connected: false
+      isTable: true,
+      connected: false,
+      dialogVisible: false,
+      currentTableName: null,
+      activeSql: null,
+      historySql:""
     }
   },
 
   mounted() {
     const token = localStorage.getItem('token')
-
     if (token) {
       this.checkConnection()
     }
   },
 
   methods: {
+    setSql(sql) {
+      console.log(sql)
+      this.activeSql = sql
+    },
+    openDialog(tableName) {
+      this.currentTableName = tableName;
+      this.dialogVisible = true;
+    },
+
+    handleSuccess(data) {
+      this.dialogVisible = false;
+    },
+
+    handleClose() {
+      this.currentTableName = null;
+      this.dialogVisible = false;
+    },
+
     logout() {
       localStorage.removeItem('token')
-
       this.connected = false
-
       this.$message.success('已退出登录')
-
       this.$router.replace('/login')
     },
 
     async checkConnection() {
       const token = localStorage.getItem('token')
-
       if (!token) {
         this.connected = false
         return
       }
-
       try {
         await api.health()
-
         this.connected = true
       } catch (e) {
         this.connected = false
-
         this.$message.error('无法连接后端，请启动 server')
       }
     },
 
     refreshTree() {
       const token = localStorage.getItem('token')
-
       if (!token) {
         return
       }
-
       if (this.$refs.sidebar) {
         this.$refs.sidebar.loadTree()
       }
-
       this.$message.success('已刷新')
     },
 
     openScript() {
-      this.$message.info('新建脚本')
+      this.$message.info('历史记录')
+      this.isTable = false;
+      this.dialogVisible = true;
+      this.historySql =  localStorage.getItem('sqlContent')
       // if (this.$route.name !== 'Script') {
       //   this.$router.push({
       //     name: 'Script'
@@ -152,7 +197,10 @@ export default {
     },
 
     onNodeClick(node) {
-
+      if (node.type === 'folder' && node.metaType && node.metaType === 'columns') {
+        this.isTable = true;
+        this.openDialog(node.tableName)
+      }
       // if (node.type === 'table') {
       //   if (
       //       this.$route.name !== 'TableData' ||

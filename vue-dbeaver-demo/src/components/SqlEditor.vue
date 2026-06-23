@@ -97,6 +97,9 @@ export default {
   created() {
   },
   methods: {
+    setValue(sql) {
+      this.editor.setValue(sql)
+    },
     onReady(cm) {
       this.cmInstance = cm;
     },
@@ -157,17 +160,6 @@ export default {
         this.cmInstance.refresh();
       }
     },
-    //定时保存函数
-    saveSql() {
-      const cacheSql = localStorage.getItem('sqlContent');
-      console.log(cacheSql)
-      if (cacheSql){
-        if (!cacheSql.includes( this.innerValue)){
-          localStorage.setItem('sqlContent', this.innerValue.concat(" \n",cacheSql));
-        }
-      }
-
-    }
   }
 };
 </script>

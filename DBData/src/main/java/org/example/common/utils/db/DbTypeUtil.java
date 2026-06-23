@@ -1,7 +1,7 @@
-package org.example.db.common.utils.db;
+package org.example.common.utils.db;
 
-import org.example.db.common.enums.DbType;
-import org.example.db.common.utils.spring.SpringUtil;
+import org.example.common.enums.DbType;
+import org.example.common.utils.spring.SpringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

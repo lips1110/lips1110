@@ -2,65 +2,103 @@
   <div class="table-columns-view">
     <div class="tab-bar">
       <div class="tab active">
-        <i class="el-icon-menu" />
+        <i class="el-icon-menu"/>
         {{ tableName }} - 列
       </div>
+      <el-button size="mini" icon="el-icon-edit-outline" @click="openInScript">在脚本中查询</el-button>
     </div>
 
     <div class="content" v-loading="loading">
-      <el-table :data="columns" border stripe size="small" style="width: 100%">
-        <el-table-column prop="CID" label="#" width="60" />
-        <el-table-column prop="NAME" label="列名" min-width="140" />
-        <el-table-column prop="TYPE" label="类型" min-width="120" />
-        <el-table-column prop="NOTNULL" label="非空" width="80">
+      <el-table
+          :data="columns"
+          border
+          stripe
+          size="small"
+          style="width: 100%"
+      >
+        <el-table-column prop="CID" label="#" width="60"/>
+        <el-table-column prop="NAME" label="列名" min-width="140"/>
+        <el-table-column prop="TYPE" label="类型" min-width="120"/>
+
+        <el-table-column label="非空" width="80">
           <template slot-scope="{ row }">
-            <el-tag :type="row.notnull ? 'danger' : 'info'" size="mini">
-              {{ row.notnull ? '是' : '否' }}
+            <el-tag :type="row.NOTNULL ? 'danger' : 'info'" size="mini">
+              {{ row.NOTNULL ? '是' : '否' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="DFLT_VALUE" label="默认值" min-width="100" />
-        <el-table-column prop="PK" label="主键" width="80">
+
+        <el-table-column prop="DFLT_VALUE" label="默认值" min-width="100"/>
+
+        <el-table-column label="主键" width="80">
           <template slot-scope="{ row }">
             <el-tag v-if="row.PK" type="warning" size="mini">PK</el-tag>
           </template>
         </el-table-column>
       </el-table>
     </div>
+    <span slot="footer">
+      <el-button @click="close">关闭</el-button>
+    </span>
   </div>
 </template>
 
 <script>
-import api from '../api';
+import api from "../api";
 
 export default {
-  name: 'TableColumns',
+  name: "TableColumns",
+
+  props: {
+    tableName: {
+      type: String,
+      required: true
+    },
+    visible: {
+      type: Boolean,
+      default: false
+    }
+  },
+
   data() {
     return {
       loading: false,
       columns: []
     };
   },
-  computed: {
-    tableName() {
-      return this.$route.params.tableName;
-    }
-  },
+
   watch: {
     tableName: {
       immediate: true,
       handler() {
         this.loadColumns();
       }
+    },
+    visible(val) {
+    },
+    activeSql:{
+
     }
   },
+
   methods: {
+    openInScript() {
+      let sql = `SELECT * FROM ${this.tableName}`;
+      this.$emit("open-sql", sql)
+      this.close();
+    },
+    close() {
+      this.$emit("cancel");
+    },
     async loadColumns() {
+      if (!this.tableName) return;
+
       this.loading = true;
       try {
-        this.columns = await api.getTableColumns(this.tableName);
+        const res = await api.getTableColumns(this.tableName);
+        this.columns = res || [];
       } catch (e) {
-        this.$message.error('加载列信息失败');
+        this.$message.error("加载列信息失败");
       } finally {
         this.loading = false;
       }
