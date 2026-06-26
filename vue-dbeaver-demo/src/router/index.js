@@ -2,6 +2,7 @@ import Vue from 'vue';
 import VueRouter from 'vue-router';
 import Login from '../views/Login.vue';
 import DB from "@/views/DB.vue";
+import CalView from "@/components/util/CalView.vue";
 
 Vue.use(VueRouter);
 
@@ -19,6 +20,11 @@ const routes = [
     path: '/DB',
     name: 'DB',
     component: DB
+  },
+  {
+    path: '/Cal',
+    name: 'DB',
+    component: CalView
   }
 ];
 

@@ -1,7 +1,7 @@
 <template>
   <div class="sql-editor">
     <div class="editor-toolbar" >
-      <el-tooltip   content="执行当前 SQL" placement="right">
+      <el-tooltip   content="F8执行当前 SQL" placement="right">
         <el-button
           type="primary"
           size="mini"
@@ -11,7 +11,7 @@
         />
       </el-tooltip>
 
-      <el-tooltip style="margin-left: 0" content="执行全部 SQL" placement="right">
+      <el-tooltip style="margin-left: 0" content="F7执行全部 SQL" placement="right">
         <el-button
           type="success"
           size="mini"
@@ -98,7 +98,7 @@ export default {
   },
   methods: {
     setValue(sql) {
-      this.editor.setValue(sql)
+      this.innerValue = sql || ''
     },
     onReady(cm) {
       this.cmInstance = cm;

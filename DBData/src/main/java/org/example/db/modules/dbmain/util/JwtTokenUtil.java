@@ -30,15 +30,15 @@ public class JwtTokenUtil {
      * @param userKey 用户信息redis-key
      * @return
      */
-    public static String createJWT(String userKey) {
+    public static String createJWT(String userKey,String userName) {
         try {
             //添加构成JWT的参数
             JwtBuilder builder = Jwts.builder()
                     .setHeaderParam("typ", "JWT")
                     .setHeaderParam("alg", "HS256")
                     // 可以将基本不重要的对象信息放到claims
-                    .claim("user", userKey) // 将token放进去jwt
-                    .setSubject("db")           // 代表这个JWT的主体，即它的所有人
+                    .claim("userKey", userKey) // 将token放进去jwt
+                    .setSubject(userName)           // 代表这个JWT的主体，即它的所有人
                     .signWith(SignatureAlgorithm.HS256, secret); // 使用HS256加密算法
             //生成JWT
             return builder.compact();
@@ -54,12 +54,24 @@ public class JwtTokenUtil {
      * @param jsonWebToken 前端传来的token
      * @return Claims对象
      */
-    public static String parseJWT(String jsonWebToken) {
+    public static String parseJWT(String jsonWebToken,String userName) {
         try {
             Claims claims = Jwts.parser()
                     .setSigningKey(secret)
                     .parseClaimsJws(jsonWebToken).getBody();
-            return (String) claims.get("user");
+            return (String) claims.get(userName);
+        } catch (Exception e) {
+            log.error("JwtTokenUtil-- parseJWT -- token解析异常 - e=", e);
+        }
+        return null;
+    }
+    
+    public static String parseJWTSubject(String jsonWebToken) {
+        try {
+            Claims claims = Jwts.parser()
+                    .setSigningKey(secret)
+                    .parseClaimsJws(jsonWebToken).getBody();
+            return (String) claims.getSubject();
         } catch (Exception e) {
             log.error("JwtTokenUtil-- parseJWT -- token解析异常 - e=", e);
         }
@@ -68,7 +80,9 @@ public class JwtTokenUtil {
 
 
     public static void main(String[] args) {
-        System.out.println(createJWT("1367a1e434cb4e88ae09d0257810e8cb"));
+//        System.out.println(createJWT("A7GibTK_D49w825a80JMxIvcdIha2nO5xX2MnFtE0X0","admin"));
+        System.out.println(parseJWTSubject("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyS2V5IjoiQTdHaWJUS19ENDl3ODI1YTgwSk14SXZjZEloYTJuTzV4WDJNbkZ0RTBYMCIsInN1YiI6ImFkbWluIn0.fZpheli4HdDsBp3WSKRWR3EqP5tvWQEPJ50rXnj31lg"));
+    
     }
 
 }

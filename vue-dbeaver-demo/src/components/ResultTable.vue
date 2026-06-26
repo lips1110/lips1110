@@ -6,8 +6,9 @@
         border
         stripe
         size="mini"
-        height="100%"
+        height="300px"
         style="width:100%"
+        label="序号"
     >
       <el-table-column
           v-for="col in data.columns"
@@ -15,6 +16,7 @@
           :prop="col"
           :label="col"
           min-width="100"
+          :table-layout="'fixed'"
           show-overflow-tooltip
       />
     </el-table>
@@ -26,8 +28,8 @@
           background
           :current-page="currentPage"
           :page-size="pageSize"
-          :page-sizes="[10,100,500,1000]"
-          :total="data.rowCount"
+          :page-sizes="[10,100,300,1000]"
+          :total="data.total"
           @current-change="handleCurrentChange"
           @size-change="handleSizeChange"
           layout="total, sizes, prev, pager, next, jumper"
@@ -42,8 +44,14 @@ export default {
   name: 'ResultTable',
 
   props: {
-    currentPage: Number,
-    pageSize: Number,
+    currentPage: {
+      type: Number,
+      default: 1
+    },
+    pageSize: {
+      type: Number,
+      default: 10
+    },
     data: {
       type: Object,
       required: true
@@ -55,18 +63,17 @@ export default {
   computed: {
   },
   methods:{
-
     handleCurrentChange(page) {
       this.$emit('page-change', {
-        pageNum: page,
-        pageSize: this.pageSize
+        page: page,
+        size: this.pageSize
       });
     },
 
     handleSizeChange(size) {
       this.$emit('page-change', {
-        pageNum: 1,
-        pageSize: size
+        page: 1,
+        size: size
       });
     }
 
@@ -83,27 +90,17 @@ export default {
 .result-table {
   overflow: auto;
   min-height: 100px;
-  max-height:600px;
   border: 1px solid #dcdfe6;
 }
 
 .pagination-wrapper {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-
   height: 50px;
   padding: 8px 20px;
   box-sizing: border-box;
-
   background: #fff;
-  //border-top: 1px solid #dcdfe6;
-
   display: flex;
   justify-content: flex-end;
   align-items: center;
-
-  z-index: 999;
+  border-top: 1px solid #dcdfe6;
 }
 </style>

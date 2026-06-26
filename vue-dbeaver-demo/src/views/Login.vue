@@ -28,6 +28,22 @@
           />
         </el-form-item>
 
+        <el-form-item label="验证码" prop="captcha">
+          <div class="captcha-row">
+            <el-input
+                v-model="loginForm.captcha"
+                placeholder="验证码"
+            />
+
+            <img
+                :src="captchaImg"
+                @click="loadCaptcha"
+                class="captcha-img"
+            />
+          </div>
+        </el-form-item>
+
+
         <el-form-item>
           <el-button
               type="primary"
@@ -45,16 +61,19 @@
 
 <script>
 import api from '../api';
-
+import md5 from 'js-md5'
 export default {
   name: 'Login',
 
   data() {
     return {
+      captchaImg: '',
       loading: false,
       loginForm: {
         username: '',
-        password: ''
+        password: '',
+        captcha: '',
+        uuid: '',
       },
       rules: {
         username: [
@@ -62,11 +81,16 @@ export default {
         ],
         password: [
           {required: true, message: '请输入密码', trigger: 'blur'}
+        ],
+        captcha: [
+          {required: true, message: '请输入验证码', trigger: 'blur'}
         ]
       }
     }
   },
-
+  mounted() {
+    this.loadCaptcha();
+  },
   methods: {
     handleLogin() {
       this.$refs.loginForm.validate(async valid => {
@@ -75,9 +99,13 @@ export default {
         }
 
         this.loading = true
-        const res = await api.login(this.loginForm);
+        const params = {
+          ...this.loginForm,
+          password: md5(this.loginForm.password)
+        }
+        const res = await api.login(params);
         if (res.code === 200) {
-          localStorage.setItem( 'token',res.data )
+          localStorage.setItem('token', res.data)
           this.$message.success('登录成功')
           await this.$router.push('/DB')
         } else {
@@ -85,6 +113,11 @@ export default {
           this.$message.error(res.message || '登录失败')
         }
       })
+    },
+    async loadCaptcha() {
+      const res = await api.getCaptcha();
+      this.loginForm.uuid = res.uuid;
+      this.captchaImg = res.img;
     }
   }
 }
@@ -102,7 +135,26 @@ export default {
 }
 
 .login-card {
-  width: 400px;
+  width: 430px;
+}
+.captcha-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.captcha-row .el-input {
+  flex: 1;
+}
+
+.captcha-img {
+  width: 120px;
+  height: 40px;
+  margin-left: 10px;
+  cursor: pointer;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  flex-shrink: 0;
 }
 
 html,

@@ -10,4 +10,6 @@ public class ExecuteRequest {
     private Integer pageNum;
 
     private Integer pageSize;
+    
+    private Integer index;
 }

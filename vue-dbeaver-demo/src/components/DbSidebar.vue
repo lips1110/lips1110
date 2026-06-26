@@ -18,7 +18,6 @@
           :filter-node-method="filterNode"
           node-key="id"
           highlight-current
-          draggable
           @node-click="handleNodeClick"
       >
   <span
@@ -77,7 +76,7 @@ export default {
         this.treeData = [
           {
             id: 'database-root',
-            label: 'DBeaver Sample Database (SQLite)',
+            label: '达梦数据库',
             type: 'database',
             children: [
               {
@@ -128,10 +127,10 @@ export default {
 
 .tree-container {
   flex: 1;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
   padding: 4px 0;
 }
-
 .tree-node {
   display: flex;
   align-items: center;
@@ -140,6 +139,10 @@ export default {
 
 .tree-label {
   margin-left: 4px;
+}
+/* 关键 */
+.tree-container ::v-deep .el-tree {
+  min-width: max-content;
 }
 
 .node-icon-db {

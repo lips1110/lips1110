@@ -1,7 +1,9 @@
 import axios from 'axios';
+import router from "@/router";
+import {Message} from "element-ui";
 
 const http = axios.create({
-    baseURL: '/db', timeout: 1000*60
+    baseURL: '/db', timeout: 1000 * 60
 });
 
 http.interceptors.request.use(config => {
@@ -11,29 +13,34 @@ http.interceptors.request.use(config => {
     }
     return config;
 }, error => {
+    console.log("拦截器错误", error.response);
+    return Promise.reject(error.response?.data || error);
+});
+let isRedirecting = false;
+// 响应拦截器
+http.interceptors.response.use((response) => {
+    const res = response.data;
+    // 👇 关键：业务码判断
+    if (res.code === 401) {
+        localStorage.removeItem("token");
+        router.push("/login");
+        if (!isRedirecting) {
+            isRedirecting = true;
+            Message.error("登录已失效，请重新登录");
+            localStorage.removeItem("token");
+            router.replace("/login").catch(() => {
+            });
+            setTimeout(() => {
+                isRedirecting = false;
+            }, 1000);
+        }
+        return Promise.reject(new Error("未登录"));
+    }
+    return response;
+}, (error) => {
     return Promise.reject(error);
 });
 
-// 响应拦截器
-http.interceptors.response.use(
-    (response) => {
-        const res = response.data;
-
-        // 👇 关键：业务码判断
-        if (res.code === 401) {
-            localStorage.removeItem("token");
-            window.location.href = "/login";
-            this.$message.success('登录失效，请重新登录')
-            return Promise.reject(new Error("未登录"));
-        }
-
-        return response;
-    },
-    (error) => {
-        // 这里只处理真正 HTTP 错误（如 500 / 网络错误）
-        return Promise.reject(error);
-    }
-);
 
 export default {
     health() {
@@ -45,14 +52,16 @@ export default {
     }, getTableData(tableName, param) {
         return http.post(`/tables/data`, param).then((r) => r.data);
     }, executeSql(para) {
-        return http.post('/execute', para).then((r) => r.data);
+        return http.post('/execute', para);
     }, executeAll(para) {
-        return http.post('/execute-all', para).then((r) => r.data);
+        return http.post('/execute-all', para);
     }, exportAllApi(para) {
         return http.post('/exportAllApi', para, {
             responseType: 'blob'
         }).then((r) => r.data);
     }, login(para) {
         return http.post('/login/submit', para).then((r) => r.data);
-    },
+    }, getCaptcha() {
+        return http.get('/captcha').then((r) => r.data);
+    }
 };

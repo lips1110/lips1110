@@ -28,8 +28,14 @@
           <el-button
               type="text"
               icon="el-icon-document"
-              title="新建脚本"
+              title="查看历史记录"
               @click="openScript"
+          />
+          <el-button
+              type="text"
+              icon="el-icon-minus"
+              title="计算器"
+              @click="openCal"
           />
         </div>
 
@@ -64,23 +70,22 @@
           />
         </aside>
         <el-dialog
-            :title="isTable ? '列信息' : '历史记录'"
+            :title="titleName"
             :visible.sync="dialogVisible"
-            width="60%"
+            :width="isTable==='cal' ? '400px' : '60%'"
             height="60%"
             @close="handleClose"
         >
-
-          <!-- 👇 子组件 -->
-          <TableColumns v-if="isTable"
-                        :table-name="currentTableName || ''"
-                        @success="handleSuccess"
-                        @cancel="dialogVisible = false"
-                        @open-sql="setSql"
-          />
-          <HistoryView :history-sql="historySql" v-else></HistoryView>
+            <!-- 👇 子组件 -->
+            <TableColumns v-if="isTable ==='columns'"
+                          :table-name="currentTableName || ''"
+                          @success="handleSuccess"
+                          @cancel="dialogVisible = false"
+                          @open-sql="setSql"
+            />
+            <HistoryView :history-sql="historySql" v-else-if="isTable ==='history'"></HistoryView>
+            <CalView  v-else></CalView>
         </el-dialog>
-
         <!--主界面-->
         <main class="workspace">
           <ScriptEditor :sqlInput="activeSql || ''"></ScriptEditor>
@@ -93,10 +98,11 @@
 <script>
 import DbSidebar from '../components/DbSidebar.vue'
 import api from '../api'
-import ScriptEditor from "@/views/ScriptEditor.vue";
-import TableColumns from "@/views/TableColumns.vue";
+import ScriptEditor from "@/components/ScriptEditor.vue";
+import TableColumns from "@/components/TableColumns.vue";
 import SqlEditor from "@/components/SqlEditor.vue";
-import HistoryView from "@/views/HistoryView.vue";
+import HistoryView from "@/components/HistoryView.vue";
+import CalView from '@/components/util/CalView.vue'
 
 export default {
   name: 'DB',
@@ -106,7 +112,8 @@ export default {
     SqlEditor,
     TableColumns,
     ScriptEditor,
-    DbSidebar
+    DbSidebar,
+    CalView
   },
 
   watch: {
@@ -116,12 +123,13 @@ export default {
 
   data() {
     return {
-      isTable: true,
+      titleName: '',
+      isTable: '',
       connected: false,
       dialogVisible: false,
       currentTableName: null,
       activeSql: null,
-      historySql:""
+      historySql: ""
     }
   },
 
@@ -133,9 +141,17 @@ export default {
   },
 
   methods: {
-    setSql(sql) {
-      console.log(sql)
-      this.activeSql = sql
+    async copyToClipboard(text) {
+      await navigator.clipboard.writeText(text);
+      this.$message.success('已复制到粘贴板')
+    },
+    setSql(sql,columns) {
+      this.copyToClipboard(sql);
+    },
+    openCal() {
+      this.isTable = 'cal';
+      this.titleName = '计算器';
+      this.dialogVisible = true;
     },
     openDialog(tableName) {
       this.currentTableName = tableName;
@@ -185,62 +201,18 @@ export default {
     },
 
     openScript() {
-      this.$message.info('历史记录')
-      this.isTable = false;
+      this.isTable = 'history';
+      this.titleName = '历史记录';
       this.dialogVisible = true;
-      this.historySql =  localStorage.getItem('sqlContent')
-      // if (this.$route.name !== 'Script') {
-      //   this.$router.push({
-      //     name: 'Script'
-      //   })
-      // }
+      this.historySql = localStorage.getItem('sqlContent')
     },
 
     onNodeClick(node) {
       if (node.type === 'folder' && node.metaType && node.metaType === 'columns') {
-        this.isTable = true;
+        this.isTable = 'columns';
+        this.titleName = '列信息';
         this.openDialog(node.tableName)
       }
-      // if (node.type === 'table') {
-      //   if (
-      //       this.$route.name !== 'TableData' ||
-      //       this.$route.params.tableName !== node.tableName
-      //   ) {
-      //     this.$router.push({
-      //       name: 'TableData',
-      //       params: {
-      //         tableName: node.tableName
-      //       }
-      //     })
-      //   }
-      //
-      // } else if (
-      //     node.type === 'folder' &&
-      //     node.metaType === 'columns' &&
-      //     node.tableName
-      // ) {
-      //   if (
-      //       this.$route.name !== 'TableColumns' ||
-      //       this.$route.params.tableName !== node.tableName
-      //   ) {
-      //     this.$router.push({
-      //       name: 'TableColumns',
-      //       params: {
-      //         tableName: node.tableName
-      //       }
-      //     })
-      //   }
-      //
-      // } else if (node.type === 'database') {
-      //   // ✔ 关键：防重复跳转
-      //   if (this.$route.name !== 'Script') {
-      //     this.$router.push({
-      //       name: 'Script'
-      //     })
-      //   }
-      // }
-
-
     }
   }
 }
@@ -270,10 +242,10 @@ body,
 .top-toolbar {
   display: flex;
   align-items: center;
-  height: 36px;
-  padding: 0 8px;
+  height: 38px;
+  padding: 0 10px;
   background: linear-gradient(180deg, #fafafa 0%, #e8e8e8 100%);
-  border-bottom: 1px solid #c0c0c0;
+  border-bottom: 2px solid #c0c0c0;
 }
 
 .toolbar-left,
@@ -298,11 +270,11 @@ body,
 
 .sidebar {
   width: 260px;
-  min-width: 200px;
   background: #fff;
   border-right: 1px solid #c0c0c0;
   display: flex;
   flex-direction: column;
+
 }
 
 .workspace {

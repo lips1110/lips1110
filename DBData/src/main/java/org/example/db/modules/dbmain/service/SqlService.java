@@ -6,13 +6,15 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.example.common.config.DataSourceWith;
 import org.example.common.enums.DataSourceType;
-import org.example.db.modules.dbmain.bean.ExecuteRequest;
-import org.example.db.modules.dbmain.bean.ResultBean;
+import org.example.db.modules.dbmain.bean.*;
+import org.example.db.modules.dbmain.util.excel.ExcelPoiUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletResponse;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
@@ -23,52 +25,64 @@ import java.util.regex.Pattern;
 
 @Service
 public class SqlService {
-    
+    private final String IS_SELECT = "result";
+    private final String IS_NOT_SELECT = "execute";
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private SqlExecuteService sqlExecuteService;
     
-    public static String getFirstKeyword(String sql) {
-        sql = sql.replaceAll("(?s)/\\*.*?\\*/", "");
-        sql = sql.replaceAll("(?m)^\\s*--.*$", "");
-        sql = sql.trim();
-        Matcher m = Pattern.compile("^(\\w+)", Pattern.CASE_INSENSITIVE).matcher(sql);
-        return m.find() ? m.group(1).toUpperCase() : "";
-    }
     
     @DataSourceWith(DataSourceType.MASTER)
     public ResultBean queryMaster(ExecuteRequest executeRequest) {
-        String sql = executeRequest.getSql().replaceAll(";", "");
-        String firstKeyword = getFirstKeyword(sql);
         ResultBean resultBean = new ResultBean();
-        List<Map<String, Object>> maps = new ArrayList<>();
+        List<Map<String, Object>> maps;
+        String sql = executeRequest.getSql().replaceAll(";", "");
         Integer pageNum = executeRequest.getPageNum();
         Integer pageSize = executeRequest.getPageSize();
-        Long total = 0L;
+        Integer total = 0;
         int offset = (pageNum - 1) * pageSize;
-        String pageSql;
-        Map<String, Object> map = new HashMap<>();
-        try {
-            if ("SELECT".equals(firstKeyword)) {
-                // 统计总数
-                String countSql = "select count(*) from (" + sql + ") t";
-                total = jdbcTemplate.queryForObject(countSql, Long.class);
-                pageSql = "" + sql + "  LIMIT ?, ?";
-                maps = jdbcTemplate.queryForList(pageSql, offset, pageSize);
-            } else {
-                maps = jdbcTemplate.queryForList(sql);
+        if (isSelectSql(sql)) {
+            try {
+                total = sqlExecuteService.queryForObjectMaster("select count(*) from (" + sql + ") t");
+            } catch (Exception e) {
+                sqlExecuteService.queryForObjectMaster(sql);
             }
-        } catch (Exception e) {
-            resultBean.setCode(500);
-            map.put("error", e.getMessage());
-            maps.add(map);
-            resultBean.setMessage(e.getMessage());
+            maps = sqlExecuteService.queryForListMaster("" + sql + "  LIMIT ?, ?", offset, pageSize);
+            if (!maps.isEmpty()) {
+                Map<String, Object> map = maps.get(0);
+                resultBean.setColumns(getColumns(map));
+            }
+            resultBean.setTotal(total);
+            resultBean.setType(IS_SELECT);
+            dealMaps(maps);
             resultBean.setRows(maps);
+            resultBean.setRowCount(maps.size());
             return resultBean;
+        } else {
+            return updateMaster(executeRequest);
         }
-        resultBean.setTotal(total);
-        resultBean.setCode(200);
-        resultBean.setRows(maps);
-        return resultBean;
+    }
+    
+    private static List<String> getColumns(Map<String, Object> map) {
+        List<String> columns = new ArrayList<>();
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            columns.add(entry.getKey());
+        }
+        return columns;
+    }
+    
+    private void dealMaps(List<Map<String, Object>> maps) {
+        for (Map<String, Object> row : maps) {
+            row.replaceAll((k, v) -> {
+                if (v instanceof BigDecimal
+                        || v instanceof BigInteger
+                        || v instanceof Long) {
+                    return v.toString();
+                }
+                return v;
+            });
+        }
     }
     
     @DataSourceWith(DataSourceType.SLAVE)
@@ -87,9 +101,6 @@ public class SqlService {
     public void export(ExecuteRequest request, HttpServletResponse response) throws Exception {
         String sql = request.getSql();
         // 只允许 SELECT
-        if (!isSelectSql(sql)) {
-            throw new RuntimeException("仅允许导出SELECT语句");
-        }
         Integer pageNum = request.getPageNum();
         Integer pageSize = request.getPageSize();
         if (pageNum != null && pageSize != null) {
@@ -97,42 +108,29 @@ public class SqlService {
             sql = sql + " LIMIT " + offset + "," + pageSize;
         }
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
-        exportExcel(rows, response);
-    }
-    
-    private void exportExcel(List<Map<String, Object>> rows, HttpServletResponse response) throws Exception {
-        Workbook workbook = new XSSFWorkbook();
-        Sheet sheet = workbook.createSheet("result");
-        if (!rows.isEmpty()) {
-            List<String> columns = new ArrayList<>(rows.get(0).keySet());
-            // 表头
-            Row headerRow = sheet.createRow(0);
-            for (int i = 0; i < columns.size(); i++) {
-                headerRow.createCell(i).setCellValue(columns.get(i));
-            }
-            // 数据
-            for (int i = 0; i < rows.size(); i++) {
-                Row excelRow = sheet.createRow(i + 1);
-                Map<String, Object> dataRow = rows.get(i);
-                for (int j = 0; j < columns.size(); j++) {
-                    Object value = dataRow.get(columns.get(j));
-                    excelRow.createCell(j).setCellValue(value == null ? "" : String.valueOf(value));
-                }
-            }
-        }
-        String fileName = URLEncoder.encode("sql_result.xlsx", StandardCharsets.UTF_8.name());
-        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
-        workbook.write(response.getOutputStream());
-        workbook.close();
+        String sheetName = "结果";
+        ExcelPoiUtil.excelPort(sheetName,getColumns(rows.get(0)),rows,null,response);
     }
     
     private boolean isSelectSql(String sql) {
+        if (sql == null) {
+            return false;
+        }
         sql = sql.replaceAll("(?s)/\\*.*?\\*/", "");
         sql = sql.replaceAll("(?m)^\\s*--.*$", "");
         sql = sql.trim();
-        Matcher matcher = Pattern.compile("^(\\w+)", Pattern.CASE_INSENSITIVE).matcher(sql);
-        return matcher.find() && "SELECT".equalsIgnoreCase(matcher.group(1));
+        
+        Matcher matcher = Pattern.compile("^(\\w+)", Pattern.CASE_INSENSITIVE)
+                .matcher(sql);
+        
+        if (!matcher.find()) {
+            return false;
+        }
+        String firstWord = matcher.group(1);
+        return "SHOW".equalsIgnoreCase(firstWord)
+                || "SELECT".equalsIgnoreCase(firstWord)
+                || "PRAGMA".equalsIgnoreCase(firstWord)
+                || "WITH".equalsIgnoreCase(firstWord);
     }
     
     public List<String> getTables() throws Exception {
@@ -162,7 +160,6 @@ public class SqlService {
     
     @DataSourceWith(DataSourceType.MASTER)
     public void getTableData(ExecuteRequest executeRequest) {
-//        List<Map<String, Object>> rows = jdbcTemplate.queryForList(executeRequest.getSql());
     }
     
     @DataSourceWith(DataSourceType.MASTER)
@@ -205,33 +202,44 @@ public class SqlService {
                 "WHERE c.OWNER = UPPER('EAS')\n" +
                 "  AND c.TABLE_NAME = UPPER('" + tableName + "')\n" +
                 "ORDER BY c.COLUMN_ID;";
-        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
-        return rows;
+        return jdbcTemplate.queryForList(sql);
     }
     
     @DataSourceWith(DataSourceType.MASTER)
     public ResultBean updateMaster(ExecuteRequest executeRequest) {
         ResultBean resultBean = new ResultBean();
-        List<Map<String, Object>> maps = new ArrayList<>();
-        Map<String, Object> map = new HashMap<>();
-        try {
-            int update = jdbcTemplate.update(executeRequest.getSql());
-            resultBean.setCode(200);
-            resultBean.setMessage("已更新行数" + update);
-            map.put("result", "已更新行数" + update);
-            maps.add(map);
-            resultBean.setRows(maps);
-            resultBean.setTotal((long) update);
-            return resultBean;
-        } catch (Exception e) {
-            resultBean.setCode(500);
-            map.put("error", e.getMessage());
-            maps.add(map);
-            resultBean.setMessage(e.getMessage());
-            resultBean.setRows(maps);
-            return resultBean;
+        int update = sqlExecuteService.updateMaster(executeRequest.getSql());
+        resultBean.setChanges(update);
+        resultBean.setType(IS_NOT_SELECT);
+        return resultBean;
+        
+        
+    }
+    
+    public List<BatchResult> executeAll(ExecuteRequest executeRequest) {
+        List<BatchResult> batchResults = new ArrayList<>();
+        String[] split = executeRequest.getSql().split(";");
+        int count = 0;
+        Integer index = executeRequest.getIndex();
+        for (String s : split) {
+            executeRequest.setSql(s);
+            ResultBean resultBean = queryMaster(executeRequest);
+            BatchResult batchResult = new BatchResult();
+            BatchRows batchRows = new BatchRows();
+            batchRows.setTotal(resultBean.getTotal());
+            batchRows.setRows(resultBean.getRows());
+            batchRows.setType(IS_SELECT);
+            batchRows.setRowCount(resultBean.getTotal());
+            List<Map<String, Object>> map1 = resultBean.getRows();
+            dealMaps(map1);
+            if (!map1.isEmpty()) {
+                batchRows.setColumns(getColumns(map1.get(0)));
+            }
+            batchResult.setResult(batchRows);
+            batchResult.setSql(executeRequest.getSql());
+            batchResults.add(batchResult);
+            count++;
         }
-        
-        
+        return batchResults;
     }
 }

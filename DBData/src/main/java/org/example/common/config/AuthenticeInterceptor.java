@@ -3,6 +3,7 @@ package org.example.common.config;
 import org.apache.commons.lang3.StringUtils;
 import org.example.common.utils.CookieUtils;
 import org.example.common.utils.JsonTool;
+import org.example.common.utils.LocalCacheUtil;
 import org.example.db.modules.dbmain.bean.BaseResult;
 import org.example.db.modules.dbmain.util.JwtTokenUtil;
 import org.slf4j.Logger;
@@ -39,8 +40,10 @@ public class AuthenticeInterceptor implements HandlerInterceptor {
             response.setStatus(HttpServletResponse.SC_OK);
             return true;
         }
+
         // 从请求中获取token，先从Header里取，取不到的话再从cookie里取（适配前后端分离的模式）
         String token = request.getHeader("token");
+        logger.info("=====请求头=====>{}",token);
         if (StringUtils.isBlank(token)) {
             token = CookieUtils.getCookie(request, "token");
         }
@@ -48,8 +51,20 @@ public class AuthenticeInterceptor implements HandlerInterceptor {
             responseError(request, response);
             return false;
         } else {
-            token = JwtTokenUtil.parseJWT(token);
-            if (StringUtils.isBlank(token)) { // JWT验证未通过，返回false
+            String result = JwtTokenUtil.parseJWT(token, "userKey");
+            String userName = JwtTokenUtil.parseJWTSubject(token);
+            Object token1 = LocalCacheUtil.get("token:" + userName);
+            if (result == null) {
+                responseError(request, response);
+                return false;
+            }
+            if (StringUtils.isBlank(result)) { // JWT验证未通过，返回false
+                responseError(request, response);
+                return false;
+            }
+            logger.info("=====请求头token1为null=====>{}",token1);
+            if (token1 == null) {
+                logger.info("=====请求头token1为null=====>{}",token1);
                 responseError(request, response);
                 return false;
             }

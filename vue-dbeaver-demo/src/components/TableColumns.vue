@@ -5,13 +5,15 @@
         <i class="el-icon-menu"/>
         {{ tableName }} - 列
       </div>
-      <el-button size="mini" icon="el-icon-edit-outline" @click="openInScript">在脚本中查询</el-button>
+      <el-button size="mini" icon="el-icon-edit-outline" @click="openInScript">复制查询全部语句到粘贴板</el-button>
     </div>
 
     <div class="content" v-loading="loading">
       <el-table
           :data="columns"
           border
+          height="400"
+          :table-layout="'fixed'"
           stripe
           size="small"
           style="width: 100%"
@@ -83,7 +85,10 @@ export default {
 
   methods: {
     openInScript() {
-      let sql = `SELECT * FROM ${this.tableName}`;
+
+      console.log(this.columns)
+      let text = this.columns.map(item => item.NAME).join(",");
+      let sql = `SELECT ${text} FROM ${this.tableName}`;
       this.$emit("open-sql", sql)
       this.close();
     },

@@ -10,6 +10,7 @@ public class BatchRows {
     private String type;
     private List<String> columns;
     private List<Map<String, Object>> rows;
-    private Long rowCount;
+    private Integer rowCount;
     
+    private Integer total;
 }

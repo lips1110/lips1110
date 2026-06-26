@@ -32,6 +32,7 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
         excludePathList.add("/css/**");
         excludePathList.add("/js/**");
         excludePathList.add("/images/**");
+        excludePathList.add("/db/captcha");
         excludePathList.add("/static/**");
         excludePathList.add("/favicon.ico");
     

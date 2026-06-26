@@ -10,9 +10,13 @@
     "axios": "^1.7.9",
     "codemirror": "^5.65.18",
     "element-ui": "^2.15.14",
+    "js-md5": "^0.8.3",
+    "mathjs": "^15.2.0",
+    "mathlive": "^0.110.0",
     "vue": "^2.7.16",
     "vue-codemirror": "^4.0.6",
-    "vue-router": "^3.6.5"
+    "vue-router": "^3.6.5",
+    "vue-simple-calculator": "^1.0.2"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^5.0.8",
